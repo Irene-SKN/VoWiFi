@@ -72,7 +72,6 @@ ZBOOL CJpSdkMng::InitSdk()
     Mtc_CliCfgSetLogFileSize(1024 * 1024);
     Mtc_CliCfgSetLogFileCount(10);
 #endif
-
     SetCallBack();
 
     iRet = Mtc_ModCom_Register();
@@ -86,7 +85,15 @@ ZBOOL CJpSdkMng::InitSdk()
 
     // start init enviroment
     iRet = Mtc_CliInit(COVER_TO_CHAR(TMTC_INIT_PROFILE));
-    TMTC_LOG_PRINTE(iRet, "init mtc enviroment failed.");
+    if (iRet != ZOK)
+    {
+       if (MTC_LCS_ERR_NEED_ACT_LICSEN == iRet)
+       {
+          LOGW << "start DownLicense...";
+       }
+
+       TMTC_LOG_PRINTE(iRet, "init mtc enviroment failed.");
+    }
 
     // start login account
     iRet = LoginAccout();
@@ -118,7 +125,7 @@ ZINT CJpSdkMng::LoginAccout()
     if(EN_LOGIN_MANUAL == m_stConfig.aucLoginWay)
        iRet = Mtc_CliOpen(COVER_TO_CHAR(m_stConfig.u.stManual.acUserNumber));
     else
-       iRet= Mtc_CliOpen(COVER_TO_CHAR(m_stConfig.acCuei));
+       iRet= Mtc_CliOpen(COVER_TO_CHAR(m_stConfig.u.stAuto.uacCuei));
 
     TMTC_LOG_PRINTE(iRet, "open acount failed.");
 
@@ -147,6 +154,9 @@ ZINT CJpSdkMng::LoginAccout()
     // set sdk inner params, don't modifty it
     Mtc_ProvDbSetCliVendor(COVER_TO_CHAR("Juphoon"));
     Mtc_ProvDbSetCliVer(COVER_TO_CHAR("1911011"));
+    Mtc_ProvDbSetTmnlType(COVER_TO_CHAR("CUEI"));
+    Mtc_ProvDbSetTmnlModel(COVER_TO_CHAR("SOUND"));
+    Mtc_ProvDbSetTmnlSwVer(COVER_TO_CHAR("v0.1"));
 
     // default Ipv4 way, if use Ipv6 to register, set ZFALSE
     Mtc_CliDbSetUseIpv4(ZTRUE);
@@ -241,12 +251,10 @@ ZINT CJpSdkMng::LoginAutoCfg(ZCHAR *pcReCpImei /*= nullptr*/)
     if (!TCHECK_ISEMPTY_STR(pcReCpImei))
         Mtc_ProvDbSetImei(pcReCpImei);
     else
-        Mtc_ProvDbSetImei(m_stConfig.acCuei);
+        Mtc_ProvDbSetImei(m_stConfig.u.stAuto.uacCuei);
 
     Mtc_ProvDbSetTmnlType(COVER_TO_CHAR("CUEI"));
     Mtc_ProvDbSetTmnlVendor(m_stConfig.u.stAuto.uacTmnlVendor);
-    Mtc_ProvDbSetTmnlModel(COVER_TO_CHAR("SOUND"));
-    Mtc_ProvDbSetTmnlSwVer(COVER_TO_CHAR("v0.1"));
 #if(defined TMTC_DOMAIN_TEST)
     CHttpMsg *pTmpHttpMsg = CHttpMsg::GetInstance();
     Mtc_CpDbSetSrvAddr(pTmpHttpMsg->GetDmsUrl());
@@ -291,7 +299,10 @@ ZINT CJpSdkMng::tmtc_MtcCliCbLoginOk(ZFUNC_VOID)
 
     CCommFunc::PrintInTermiate(EN_PRINT_GREEN, "Login Success.");
     LOGI << "Login Success.";
-    CHttpMsg::GetInstance()->ReportRegister(CJpSdkMng::GetInstance()->GetCuei(), ENUM_HTTP_PARSE_REGISTER);
+
+    ZBOOL bAutoCfg = CJpSdkMng::GetInstance()->IsAutoLoginWay();
+    CHttpMsg::GetInstance()->ReportRegister(ENUM_HTTP_PARSE_REGISTER, bAutoCfg);
+
     return ZOK;
 }
 
@@ -352,18 +363,11 @@ ZVOID CJpSdkMng::tmtc_MtcCliCbSetRegStatChanged(ZUINT iRegStat, ZUINT iStatCode)
 
 ZVOID CJpSdkMng::tmtc_MtcCallCbSetTalking(ZUINT iSessId)
 {
-    string strCallUri, strCalledUri;
-    ZCHAR *pcName = nullptr;
-    ZCHAR *pcUri = nullptr;
-
-    CJpSdkMng::GetInstance()->SetCallId(iSessId);
-    Mtc_SessGetPeerId(iSessId, &pcName, &pcUri);
-
-    strCallUri = string(Mtc_UriGetUserPart(pcUri));
-    strCalledUri = string(Mtc_UriGetUserPart(pcName)) ;
-
-    CHttpMsg::GetInstance()->StartCall(strCallUri, strCalledUri);
+    string strTmp;
+    strTmp = "Taking iSessId:" + to_string(iSessId);
+    CCommFunc::PrintInTermiate(EN_PRINT_WHITE, strTmp);
     LOGI << "Current Taking....";
+    CHttpMsg::GetInstance()->RingCall(ZTRUE);
 }
 
 ZVOID CJpSdkMng::tmtc_MtcCallCbAlerted(ZUINT iSessId, ZUINT iAlertType)
@@ -379,6 +383,8 @@ ZVOID CJpSdkMng::tmtc_MtcCallCbAlerted(ZUINT iSessId, ZUINT iAlertType)
 
     CCommFunc::PrintInTermiate(EN_PRINT_WHITE, strTmp);
     LOGI << strTmp;
+
+    CHttpMsg::GetInstance()->RingCall(ZFALSE);
 }
 
 ZVOID CJpSdkMng::tmtc_MtcCallCbIncoming(ZUINT iSessId)
@@ -558,6 +564,13 @@ ZINT  CJpSdkMng::StartCall(ZCHAR *pcNumber)
     /** to tranmit sdp to server ,for example 183 session */
     CJpAudioMng::GetInstance()->StartZeroAudioInput();
 #endif
+
+    std::string strCallUri = Mtc_CliDbGetUserName();
+    std::string calledUri = pcNumber;
+    std::string callUri = (strCallUri.find("+86") == std::string::npos) ? strCallUri : strCallUri.substr(3);
+
+    ZBOOL bAutoCfg = CJpSdkMng::GetInstance()->IsAutoLoginWay();
+    CHttpMsg::GetInstance()->StartCall(callUri, calledUri, bAutoCfg);
     return m_iSessCallId;
 }
 

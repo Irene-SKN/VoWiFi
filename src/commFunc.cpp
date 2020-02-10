@@ -113,7 +113,7 @@ ZVOID CCommFunc::CoverToUri(ZCHAR *pcIp, const string &strSrc, string &strDst)
     strDst.clear();
     if (TCHECK_ISEMPTY_STR(pcIp))
      {
-          strDst += string("tel:+86");
+          strDst += string("tel:");
           strDst += strSrc;
      }
      else
@@ -242,7 +242,7 @@ ZVOID CCommFunc::ObtainCurTime(time_t time, string& strTime)
     tm *t = localtime(&time);
     strTime.clear();
 
-    snprintf(cBuf, TMTC_DATA_LEN, "%4d-%02d-%02d_%02d:%02d:%02d", t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
+    snprintf(cBuf, TMTC_DATA_LEN, "%4d-%02d-%02d %02d:%02d:%02d", t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
     strTime = cBuf;
 }
 
@@ -300,4 +300,13 @@ ZINT64 CCommFunc::getCurrentUnixTime()
         return false;
 
     return static_cast<ZINT64>(std::mktime(timeInfo));
+}
+
+ZVOID CCommFunc::PrintInLog(const char* format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    ZCHAR acLogInfo[1024] = {0};
+    vsnprintf(acLogInfo, sizeof(acLogInfo)-1, format, ap);
+    va_end(ap);
 }

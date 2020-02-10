@@ -2,6 +2,7 @@
 
 int main()
 {
+   plog::init(plog::debug, "JpLog.txt", (1024*1024), 1);
    ZBOOL bRet = SDK_Init();
    if (!bRet)
    {

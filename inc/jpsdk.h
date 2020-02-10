@@ -19,9 +19,9 @@ public:
     ZBOOL  GetTakingStatus();
     ZINT   SendDtmf(const string &strType);
 public:
-    ZCHAR *GetCuei()
+    ZBOOL IsAutoLoginWay()
     {
-        return m_stConfig.acCuei;
+        return (m_stConfig.aucLoginWay == EN_LOGIN_AUTO);
     }
 
 private:

@@ -15,6 +15,7 @@
 #include <atomic>
 #include <list>
 #include <map>
+#include <stdarg.h>
 using namespace std;
 
 /* linux define header file */
@@ -169,8 +170,12 @@ typedef enum ENUM_HTTP_PARSE_TYPE
     ENUM_HTTP_PARSE_VALIDURL,  /** @brief get request, obtain latest URL */
     ENUM_HTTP_PARSE_REGISTER,  /** @brief post request, report current register capability */
     ENUM_HTTP_PARSE_UNREGISTER,/** @brief post request, report unregister capability */
-    ENUM_HTTP_PARSE_CALL,      /** @brief post request, report current call capability */
-    ENUM_HTTP_UPLOAD_LOG       /** @brief post request, report log file */
+    ENUM_HTTP_PARSE_STARTCALL, /** @brief post request, report current call capability */
+    ENUM_HTTP_UPLOAD_LOG,      /** @brief post request, report log file */
+    ENUM_HTTP_RING_CALL,        /** @brief post request, report ring data and taking data */
+    ENUM_HTTP_RING_UPDATECALL,  /** @brief post request, report 60s call Data */
+    ENUM_HTTP_RING_CALL_STOPCALL, /** @brief post request, stop call */
+    ENUM_HTTP_DOWNLICENSE,        /** @brief get request, license download */
 }ENUM_HTTP_PARSE_TYPE;
 
 /** @brief TMTC obtain call direction */
@@ -210,6 +215,7 @@ typedef struct tagTMTC_MANUALCFG_WAY
 /** @biref TMTC auto login way */
 typedef struct tagTMTC_AUTOCFG_WAY
 {
+    ZCHAR uacCuei[TMTC_DATA_LEN];
     ZCHAR uacTmnlVendor[TMTC_CP_VENDOR_LEN]; /**<  @brief terminal vendor name */
     ZCHAR uacDmsIp[TMTC__IP_LEN];            /**<  @brief  login DMS server ip  */
 }ST_TMTC_AUTOCFG_WAY;
@@ -217,7 +223,6 @@ typedef struct tagTMTC_AUTOCFG_WAY
 /** @brief register structure */
 typedef struct tagTMTC_LOGIN
 {
-  ZCHAR  acCuei[TMTC_DATA_LEN];   /** @brief terminiate device serival number */
   ZUCHAR aucLoginWay;                    /**< @brief  login way see@ EN_LOGIN_WAY */
   ZUCHAR aucSpare[3];                    /**< @brief for 32 bits alignment */
   union
@@ -229,8 +234,7 @@ typedef struct tagTMTC_LOGIN
   /* set defalut value */
   tagTMTC_LOGIN()
   {
-       strcpy(acCuei, "200012040000045");
-       aucLoginWay  = EN_LOGIN_MANUAL;
+     aucLoginWay  = EN_LOGIN_MANUAL;
 
      if (EN_LOGIN_MANUAL == aucLoginWay)
      {
@@ -244,6 +248,7 @@ typedef struct tagTMTC_LOGIN
      }
      else
      {
+        strcpy(u.stAuto.uacCuei, "200012040000045");
         strcpy(u.stAuto.uacDmsIp, "101.207.176.140");
         strcpy(u.stAuto.uacTmnlVendor, "baidu");
      }

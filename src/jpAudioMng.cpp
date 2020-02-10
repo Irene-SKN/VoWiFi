@@ -66,7 +66,6 @@ CJpAudioMng *CJpAudioMng::GetInstance()
 ZINT CJpAudioMng::InitAudio()
 {
     ZINT iRet = ZOK;
-    plog::init(plog::debug, "JpLog.txt", (1024*1024), 1);
     iRet = Zmf_AudioInitialize(0);
     return iRet;
 }

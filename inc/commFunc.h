@@ -10,7 +10,7 @@ public:
    static ZBOOL UpingRemoteIp(const ZCHAR *acIp);
 
    static ZVOID PrintInTermiate(ZUCHAR uacType, const string& strPrint, ZBOOL bBold = ZFALSE);
-
+   static ZVOID PrintInLog(const char* format, ...);
    static ZVOID AccountAdp(ZUINT iType, ZCHAR *pcUserName, ZCHAR *pcDomain,
                            string &strAuthName, string &strUsrName);
 

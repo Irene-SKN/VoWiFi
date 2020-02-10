@@ -1,5 +1,5 @@
 #include "httpmsg.h"
-
+#include "stdio.h"
 #ifndef TMTC_TIMEOUT_LEN
 #define TMTC_TIMEOUT_LEN 15
 #endif
@@ -64,46 +64,7 @@ size_t CHttpMsg::WriteData(void* ptr, size_t size, size_t nmemb, void* stream)
     return size * nmemb;
 }
 
-ZBOOL CHttpMsg::Post(const std::string & strUrl, const std::string & strPost, ZUCHAR acType)
-{
-    std::string strResponse;
-    CURL* pCurl = curl_easy_init();
-    if(pCurl != nullptr)
-    {
-
-        curl_easy_setopt(pCurl, CURLOPT_URL, strUrl.c_str());
-        curl_easy_setopt(pCurl, CURLOPT_POST, 1);
-        curl_easy_setopt(pCurl, CURLOPT_POSTFIELDS, strPost.c_str());
-        curl_easy_setopt(pCurl, CURLOPT_READFUNCTION, NULL);
-        curl_easy_setopt(pCurl, CURLOPT_WRITEFUNCTION, CHttpMsg::WriteData);
-        curl_easy_setopt(pCurl, CURLOPT_WRITEDATA, (void *)&strResponse);
-        curl_easy_setopt(pCurl, CURLOPT_CONNECTTIMEOUT, TMTC_TIMEOUT_LEN);
-        curl_easy_setopt(pCurl, CURLOPT_TIMEOUT, TMTC_TIMEOUT_LEN);
-#if(defined TMTC_SSL_TRANSPORT)
-        curl_easy_setopt(pCurl, CURLOPT_SSLVERSION,1);
-        curl_easy_setopt(pCurl, CURLOPT_SSL_VERIFYPEER, ZTRUE);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, ZFALSE);
-        curl_easy_setopt(pCurl, CURLOPT_CAINFO, CA_CERT_FILE);
-#else
-        curl_easy_setopt(pCurl, CURLOPT_SSL_VERIFYPEER, ZFALSE);
-        curl_easy_setopt(pCurl, CURLOPT_SSL_VERIFYHOST, ZFALSE);
-#endif
-    }
-    auto res = curl_easy_perform(pCurl);
-    if (res != CURLE_OK)
-    {
-        curl_easy_cleanup(pCurl);
-        return ZFALSE;
-    }
-    else
-    {
-        curl_easy_cleanup(pCurl);
-        return  ParseDevMngResult(strResponse, acType);
-    }
-    return ZFALSE;
-}
-
-ZBOOL CHttpMsg::PostRequest(const string& strUrl, const string& strBody, ZBOOL bEndCall, ZUCHAR acType)
+ZBOOL CHttpMsg::PostRequest(const string& strUrl, const string& strBody, ZBOOL bStartCall, ZUCHAR acType)
 {
     auto pCurl = curl_easy_init();
     if (nullptr != pCurl)
@@ -126,16 +87,15 @@ ZBOOL CHttpMsg::PostRequest(const string& strUrl, const string& strBody, ZBOOL b
         curl_easy_setopt(pCurl, CURLOPT_SSL_VERIFYPEER, ZFALSE);
         curl_easy_setopt(pCurl, CURLOPT_SSL_VERIFYHOST, ZFALSE);
 #endif
-
         curl_slist *pHeaderList = curl_slist_append(nullptr, "Content-Type: application/x-www-form-urlencoded");
         curl_slist_append(nullptr, "Accept: */*");
 
-        if (bEndCall)
+        if (bStartCall)
             curl_slist_append(pHeaderList, "Cookie: SECURITY_CODE=31598a23a087b37a28ad82d449a30206");
 #if(defined TMTC_DOMAIN_TEST)
         strTmp = string("HOST:") + string(GetDevMngUrl());
 #else
-        strTmp = string("HOST:") + string("101.207.176.139:8099");
+        strTmp = string("HOST:") + TMTC_REMOTE_ADDR;
 #endif
         curl_slist_append(pHeaderList, strTmp.c_str());
         curl_slist_append(pHeaderList, "Content-Type: application/x-www-form-urlencoded");
@@ -206,9 +166,7 @@ ZBOOL CHttpMsg::GetRequest(const string& strUrl, ZUCHAR acType)
     return ZFALSE;
 }
 
-
-
-ZVOID CHttpMsg::StartCall(string& calluri, string& calleduri)
+ZVOID CHttpMsg::StartCall(string& calluri, string& calleduri, ZBOOL bAutoCfg)
 {
     ZUINT iPort;
     m_callPhone = calluri;
@@ -217,11 +175,17 @@ ZVOID CHttpMsg::StartCall(string& calluri, string& calleduri)
 
     string strBody, strTmp;
     CCommFunc::ObtainCurTime(time(0), strTmp);
+
     AddBody(strBody, "clientVendor", Mtc_ProvDbGetCliVendor());
     AddBody(strBody, "clientVersion", Mtc_ProvDbGetCliVer());
-    AddBody(strBody, "terminalVendor", Mtc_ProvDbGetTmnlVendor());
     AddBody(strBody, "terminalModel", Mtc_ProvDbGetTmnlModel());
     AddBody(strBody, "terminalSwVersion", Mtc_ProvDbGetTmnlSwVer());
+
+    if (bAutoCfg)
+        AddBody(strBody, "terminalVendor",  Mtc_ProvDbGetTmnlVendor());
+    else
+        AddBody(strBody, "terminalVendor",  "baidu");
+
     AddBody(strBody, "startTime", strTmp);
     AddBody(strBody, "callType", "voiceCall");
     AddBody(strBody, "callDomain", std::string(Mtc_CliDbGetSipRegIp()));
@@ -244,7 +208,8 @@ ZVOID CHttpMsg::StartCall(string& calluri, string& calleduri)
     AddBody(strBody, "callPhone", m_callPhone);
     AddBody(strBody, "calledPhone", m_calledPhone);
 
-    PostRequest(TMTC_START_CALL_URL, strBody, ZFALSE, ENUM_HTTP_PARSE_CALL);
+    LOGI << "StartCall:" << strBody;
+    PostRequest(TMTC_START_CALL_URL, strBody, ZTRUE, ENUM_HTTP_PARSE_STARTCALL);
 
     if (m_hUpdateThread.joinable())
         m_hUpdateThread.join();
@@ -269,7 +234,7 @@ ZVOID CHttpMsg::StopCall()
     AddBody(strBody, "callPhone", m_callPhone);
     AddBody(strBody, "calledPhone", m_calledPhone);
 
-    PostRequest(TMTC_STOP_CALL_URL, strBody, ZFALSE, ENUM_HTTP_PARSE_CALL);
+    PostRequest(TMTC_STOP_CALL_URL, strBody, ZFALSE, ENUM_HTTP_PARSE_STARTCALL);
 }
 
 ZVOID CHttpMsg::UpdateCall()
@@ -281,15 +246,16 @@ ZVOID CHttpMsg::UpdateCall()
         AddBody(body, "callPhone", m_callPhone);
         AddBody(body, "calledPhone", m_calledPhone);
         AddBody(body, "callDuration", std::to_string((long) difftime(updateTime, m_callStartTime)));
+        AddBody(body, "cId", m_cid);
 
-        PostRequest(TMTC_UPDATE_CALL_URL, body, ZFALSE, ENUM_HTTP_PARSE_CALL);
+        PostRequest(TMTC_UPDATE_CALL_URL, body, ZFALSE, ENUM_HTTP_PARSE_STARTCALL);
 
         std::unique_lock<std::mutex> lock(m_mutex);
         m_cond.wait_for(lock, std::chrono::seconds{60});
     }
 }
 
-ZVOID CHttpMsg::ReportRegister(ZCHAR *pcCuei, ZUCHAR aucType)
+ZVOID CHttpMsg::ReportRegister(ZUCHAR aucType, ZBOOL bAutoCfg)
 {
 #if 0
     string strMac, strSign, strTmp;
@@ -329,12 +295,17 @@ ZVOID CHttpMsg::ReportRegister(ZCHAR *pcCuei, ZUCHAR aucType)
     AddBody(strBody, "userType", "0");
     AddBody(strBody, "ip", Mtc_GetLclIp(0));
     AddBody(strBody, "operationType", strTmp);
-    AddBody(strBody, "device", pcCuei);
+    if (bAutoCfg)
+        AddBody(strBody, "device", Mtc_ProvDbGetImei());
+    else
+        AddBody(strBody, "device", "200012040000045");
+
     strTmp.clear();
     CCommFunc::ObtainCurTime(time(0), strTmp);
     AddBody(strBody, "time", strTmp);
 
-    //Post(TMTC_REGISTER_URL, strBody, aucType);
+    // Post(TMTC_REGISTER_URL, strBody, aucType);
+    LOGI << "ReportRegister:" << strBody;
     PostRequest(TMTC_REGISTER_URL, strBody, ZFALSE, aucType);
 }
 
@@ -351,7 +322,8 @@ ZBOOL CHttpMsg::ParseDevMngResult(const std::string& result, ZUCHAR ucType)
     rapidjson::Document document;
     string strTmp;
     ZBOOL bRet = ZFALSE;
-    cout << "ParseDeMngResunt result:" << result;
+    cout << "ParseDeMngResult result:" << result;
+    LOGI <<"ParseDeMngResult result:" << result;
     document.Parse<0>(result.c_str());
     if (document.HasParseError())
         return ZFALSE;
@@ -375,7 +347,7 @@ ZBOOL CHttpMsg::ParseDevMngResult(const std::string& result, ZUCHAR ucType)
 
         case ENUM_HTTP_PARSE_VALIDURL:
         {
-            if (document.HasMember("result") && document.HasMember("data"))
+            if (document.HasMember("result"))
             {
                 if (0 == document["result"].GetInt())
                 {
@@ -383,29 +355,32 @@ ZBOOL CHttpMsg::ParseDevMngResult(const std::string& result, ZUCHAR ucType)
                    break;
                 }
 
-                m_periodMutex.lock();
-                string strDevMngUrl =  document["data"]["sdkPlatformServerUrl"].GetString();
-                if ( 0 != strDevMngUrl.compare(m_strDevMngUrl))
-                    m_strDevMngUrl = strDevMngUrl;
-
-                m_iDevValidTime = document["data"]["sdkPlatformServerUrlValidDate"].GetInt();
-
-                string strDmsUrl= document["data"]["dmsServerUrl"].GetString();
-                if ( 0 != strDmsUrl.compare(m_strDmsUrl))
-                    m_strDmsUrl  = strDmsUrl;
-
-                m_iDmsValidTime = document["data"]["dmsServerUrlValidDate"].GetInt();
-                m_periodMutex.unlock();
-
-                if (m_hPeriodThread.joinable())
+                if (document.HasMember("data"))
                 {
-                    bRet = ZFALSE;
-                    m_hPeriodThread.join();
+                    m_periodMutex.lock();
+                    string strDevMngUrl =  document["data"]["sdkPlatformServerUrl"].GetString();
+                    if ( 0 != strDevMngUrl.compare(m_strDevMngUrl))
+                        m_strDevMngUrl = strDevMngUrl;
+
+                    m_iDevValidTime = document["data"]["sdkPlatformServerUrlValidDate"].GetInt();
+
+                    string strDmsUrl= document["data"]["dmsServerUrl"].GetString();
+                    if ( 0 != strDmsUrl.compare(m_strDmsUrl))
+                        m_strDmsUrl  = strDmsUrl;
+
+                    m_iDmsValidTime = document["data"]["dmsServerUrlValidDate"].GetInt();
+                    m_periodMutex.unlock();
+
+                    if (m_hPeriodThread.joinable())
+                    {
+                        bRet = ZFALSE;
+                        m_hPeriodThread.join();
+                    }
+
+                    m_hPeriodThread = std::thread(std::bind(&CHttpMsg::UrlPeriodRun, this));
                 }
 
-
                 bRet = ZTRUE;
-                m_hPeriodThread = std::thread(std::bind(&CHttpMsg::UrlPeriodRun, this));
             }
         }
         break;
@@ -423,7 +398,7 @@ ZBOOL CHttpMsg::ParseDevMngResult(const std::string& result, ZUCHAR ucType)
         }
         break;
 
-        case ENUM_HTTP_PARSE_CALL:
+        case ENUM_HTTP_PARSE_STARTCALL:
         {
             if (document.HasMember("value"))
             {
@@ -451,6 +426,61 @@ ZBOOL CHttpMsg::ParseDevMngResult(const std::string& result, ZUCHAR ucType)
             }
         }
         break;
+
+        case ENUM_HTTP_RING_CALL:
+        {
+            if (document.HasMember("result") && document.HasMember("value"))
+            {
+               strTmp.clear();
+               strTmp = document["result"].GetString();
+               if (0 == strTmp.compare("ok"))
+               {
+                   // nothing todo
+               }
+
+            }
+
+        }
+        break;
+
+       case ENUM_HTTP_RING_UPDATECALL:
+       {
+            if (document.HasMember("result") && document.HasMember("value"))
+            {
+               strTmp.clear();
+               strTmp = document["result"].GetString();
+               if (0 == strTmp.compare("ok"))
+               {
+                   // nothing todo
+               }
+
+            }
+       }
+       break;
+
+       case ENUM_HTTP_RING_CALL_STOPCALL:
+       {
+            if (document.HasMember("result") && document.HasMember("value"))
+            {
+               strTmp.clear();
+               strTmp = document["result"].GetString();
+               if (0 == strTmp.compare("ok"))
+               {
+                   // nothing todo
+               }
+
+            }
+       }
+       break;
+
+       case ENUM_HTTP_DOWNLICENSE:
+       {
+            if (document.HasMember("result"))
+            {
+                // nothing todo
+            }
+       }
+       break;
     }
 
     return bRet;
@@ -466,6 +496,7 @@ ZBOOL CHttpMsg::GetValidServerUrl()
    string strTmp2 = strTmp.substr(iPos + 1, iPos2 - iPos - 1);
   // strUrl = TMTC_VALIDSERVAL_URL + "&&sdkVersion=" + strTmp2;
    strUrl = TMTC_VALIDSERVAL_URL + "&&sdkVersion=" + string("1.0.0");
+   LOGI << "GetValidServerUrl:" << strUrl;
    return GetRequest(strUrl, ENUM_HTTP_PARSE_VALIDURL);
 }
 
@@ -485,6 +516,7 @@ ZBOOL CHttpMsg::UploadSDKState()
 
     cout << "UplaodSDKStatae:" << endl;
     cout << strUrl << endl;
+    LOGI << "UploadSDKState:" << strUrl;
     return GetRequest(strUrl, ENUM_HTTP_PARSE_SDK_STATE);
 }
 
@@ -506,5 +538,22 @@ ZBOOL CHttpMsg::UploadLogFile(ZCHAR *pcPath)
     AddBody(strBody, "deviceInfo", Mtc_GetLclIp(0));
     AddBody(strBody, "reason", "1");
     AddBody(strBody, "appKey", "31598a23a087b37a28ad82d449a30206");
-    return Post(TMTC_UPLOADLOG_URL, strBody, ENUM_HTTP_UPLOAD_LOG);
+    return PostRequest(TMTC_UPLOADLOG_URL, strBody, ZFALSE, ENUM_HTTP_UPLOAD_LOG);
+}
+
+ZVOID CHttpMsg::RingCall(ZBOOL bTaking /*= ZFALSE */)
+{
+    string strBody, strTmp;
+    AddBody(strBody, "uuid", m_uuid);
+    AddBody(strBody, "type", bTaking ? "1" :"0");
+    CCommFunc::ObtainCurTime(time(0), strTmp);
+    AddBody(strBody, "startTime", strTmp);
+    PostRequest(TMTC_RINGTIME_URL, strBody, ZFALSE, ENUM_HTTP_RING_CALL);
+}
+
+ZVOID CHttpMsg::DownLoadLicense()
+{
+    // string strUrl = TMTC_LICENSE_URL + "31598a23a087b37a28ad82d449a30206" + "&device="  + TMTC_SDK_APPID;
+    string strUrl = TMTC_LICENSE_URL + "31598a23a087b37a28ad82d449a30206" + "&device="  + "unicom-32arm-baidu";
+    GetRequest(strUrl, ENUM_HTTP_DOWNLICENSE);
 }

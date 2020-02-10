@@ -46,8 +46,9 @@ JP_NETSDK_API ZBOOL SDK_LoginOut()
 
     CHttpMsg *pHttpMsg = CHttpMsg::GetInstance();
     assert(NULL != pHttpMsg);
-    CHttpMsg::GetInstance()->ReportRegister(CJpSdkMng::GetInstance()->GetCuei(),
-                                            ENUM_HTTP_PARSE_UNREGISTER);
+
+    ZBOOL bAutoCfg = CJpSdkMng::GetInstance()->IsAutoLoginWay();
+    CHttpMsg::GetInstance()->ReportRegister(ENUM_HTTP_PARSE_UNREGISTER, bAutoCfg);
     return bRet;
 }
 
