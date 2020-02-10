@@ -308,5 +308,6 @@ ZVOID CCommFunc::PrintInLog(const char* format, ...)
     va_start(ap, format);
     ZCHAR acLogInfo[1024] = {0};
     vsnprintf(acLogInfo, sizeof(acLogInfo)-1, format, ap);
+    LOGI << acLogInfo ;
     va_end(ap);
 }
