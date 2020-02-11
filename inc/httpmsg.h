@@ -1,10 +1,12 @@
 #pragma once
 #include "commdatadef.h"
-const std::string TMTC_HTTP_TPT = "http://";
+
 const std::string TMTC_REMOTE_ADDR = "47.103.69.233:8155";
 #if(defined TMTC_SSL_TRANSPORT)
 const std::string TMTC_HTTP_PRO = "https://";
 #else
+const std::string TMTC_HTTP_TPT = "http://";
+#endif
 const std::string TMTC_VALIDSERVAL_URL = TMTC_HTTP_TPT + TMTC_REMOTE_ADDR + "/rest2/client/getValidServerUrl?functionType=0";
 const std::string TMTC_UPLOADSDKSTATE = TMTC_HTTP_TPT + TMTC_REMOTE_ADDR + "/rest2/client/uploadSDKState?dataType=2";
 const std::string TMTC_START_CALL_URL = TMTC_HTTP_TPT + TMTC_REMOTE_ADDR + "/rest2/client/ss/voiceCall";
@@ -15,7 +17,7 @@ const std::string  TMTC_REGISTER_URL = TMTC_HTTP_TPT + TMTC_REMOTE_ADDR + "/rest
 const std::string TMTC_UPLOADLOG_URL= TMTC_HTTP_TPT + TMTC_REMOTE_ADDR + "/rest2/client/logUpload";
 const std::string TMTC_RINGTIME_URL = TMTC_HTTP_TPT + TMTC_REMOTE_ADDR + "/rest2/client/ringTime/";
 const std::string TMTC_LICENSE_URL = TMTC_HTTP_TPT + TMTC_REMOTE_ADDR + "/rest2/client/license/download?APPKEY=";
-#endif
+
 //"unicom-32arm-baidu"
 const std::string  TMTC_SDK_APPID = "2";
 
@@ -47,7 +49,7 @@ public:
 
     ZBOOL GetValidServerUrl();
     ZBOOL UploadSDKState();
-    ZVOID DownLoadLicense();
+    ZBOOL DownLoadLicense();
 private:
     ZVOID AddBody(string& strBody, const string& strKey, const string& strValue);
     ZBOOL PostRequest(const string& strUrl, const  string& strBody, ZBOOL bStartCall, ZUCHAR acType);

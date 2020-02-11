@@ -10,9 +10,12 @@
 #define  TMTC_PING_RETRY   3
 #endif
 
+#ifndef  TMTC_DOWNLICENSE_NUM
+#define  TMTC_DOWNLICENSE_NUM 2
+#endif
+
 CJpSdkMng *CJpSdkMng::m_pJpMng = nullptr;
 CJpSdkMng::CGarbo CJpSdkMng::m_garbo;
-static ZINT iReLoginNum = 0;
 
 CJpSdkMng::CJpSdkMng()
          : m_iSessCallId(TMTC_INVALID_CALLID)
@@ -84,21 +87,43 @@ ZBOOL CJpSdkMng::InitSdk()
     TMTC_LOG_PRINTE(iRet, "voip module Register failed");
 
     // start init enviroment
-    iRet = Mtc_CliInit(COVER_TO_CHAR(TMTC_INIT_PROFILE));
-    if (iRet != ZOK)
-    {
-       if (MTC_LCS_ERR_NEED_ACT_LICSEN == iRet)
-       {
-          LOGW << "start DownLicense...";
-       }
-
-       TMTC_LOG_PRINTE(iRet, "init mtc enviroment failed.");
-    }
+    iRet = InitEnv();
+    TMTC_LOG_PRINTE(iRet, "init mtc enviroment failed.");
 
     // start login account
     iRet = LoginAccout();
 
     return (ZOK == iRet);
+}
+
+ZINT  CJpSdkMng::InitEnv()
+{
+    static ZINT iDownLicenseNum = 0;
+    string strTmp;
+    ZINT iRet = Mtc_CliInit(COVER_TO_CHAR(TMTC_INIT_PROFILE));
+    if (iRet != ZOK)
+    {
+       if (MTC_LCS_ERR_NEED_ACT_LICSEN == iRet)
+       {
+         LOGW << "start DownLicense...";
+
+         strTmp.clear();
+         strTmp = "init mtc enviroment failed iRet[" + to_string(iRet)
+                 + "] iInitNum[" + to_string(iDownLicenseNum) + "]";
+         TMTC_LOG_PRINTE(iRet, strTmp);
+
+         ZBOOL bRet =  CHttpMsg::GetInstance()->DownLoadLicense();
+
+         if (bRet && iDownLicenseNum <= TMTC_DOWNLICENSE_NUM)
+         {
+             iDownLicenseNum ++;
+             return InitEnv();
+         }
+
+       }
+    }
+
+    return iRet;
 }
 
 ZVOID CJpSdkMng::CleanUpSdk()
@@ -320,6 +345,8 @@ ZINT CJpSdkMng::tmtc_MtcCliCbSetLoginFailed(ZUINT iStatCode)
 
 ZVOID CJpSdkMng::tmtc_MtcCliCbSetRegStatChanged(ZUINT iRegStat, ZUINT iStatCode)
 {
+    static ZINT iReLoginNum = 0;
+
     string strTmp;
     strTmp += "RegStatChanged iRegStat[";
     strTmp += to_string(iRegStat);

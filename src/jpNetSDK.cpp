@@ -2,9 +2,14 @@
 
 JP_NETSDK_API ZBOOL SDK_Init()
 {
-#if 1
+    plog::init(plog::debug, "JpLog.txt", (1024*1024), 1);
+
     CHttpMsg *pHttpMsg = CHttpMsg::GetInstance();
     assert(NULL != pHttpMsg);
+#if 1
+    pHttpMsg->UploadSDKState();
+    pHttpMsg->GetValidServerUrl();
+#else
     ZBOOL bRet = pHttpMsg->UploadSDKState();
     if (!bRet) return bRet;
 

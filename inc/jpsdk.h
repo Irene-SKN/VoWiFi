@@ -71,6 +71,8 @@ protected:
     ZVOID StopPingThread();
     ZVOID PingThreadRun();
 #endif
+
+    ZINT  InitEnv();
 public:
     ZVOID SetCallNumer(const string &strNumber)
     {

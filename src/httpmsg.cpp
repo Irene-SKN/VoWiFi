@@ -1,8 +1,6 @@
 #include "httpmsg.h"
 #include "stdio.h"
-#ifndef TMTC_TIMEOUT_LEN
-#define TMTC_TIMEOUT_LEN 15
-#endif
+
 CHttpMsg *CHttpMsg::m_pHttpMng = nullptr;
 CHttpMsg::CGarbo CHttpMsg::m_garbo;
 
@@ -478,6 +476,12 @@ ZBOOL CHttpMsg::ParseDevMngResult(const std::string& result, ZUCHAR ucType)
             if (document.HasMember("result"))
             {
                 // nothing todo
+               strTmp.clear();
+               strTmp = document["result"].GetString();
+               if (0 == strTmp.compare("ok"))
+               {
+                   bRet = ZTRUE;
+               }
             }
        }
        break;
@@ -551,9 +555,9 @@ ZVOID CHttpMsg::RingCall(ZBOOL bTaking /*= ZFALSE */)
     PostRequest(TMTC_RINGTIME_URL, strBody, ZFALSE, ENUM_HTTP_RING_CALL);
 }
 
-ZVOID CHttpMsg::DownLoadLicense()
+ZBOOL CHttpMsg::DownLoadLicense()
 {
     // string strUrl = TMTC_LICENSE_URL + "31598a23a087b37a28ad82d449a30206" + "&device="  + TMTC_SDK_APPID;
     string strUrl = TMTC_LICENSE_URL + "31598a23a087b37a28ad82d449a30206" + "&device="  + "unicom-32arm-baidu";
-    GetRequest(strUrl, ENUM_HTTP_DOWNLICENSE);
+    return GetRequest(strUrl, ENUM_HTTP_DOWNLICENSE);
 }
