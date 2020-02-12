@@ -58,17 +58,17 @@ private:
 protected:
     static size_t WriteData(void* ptr, size_t size, size_t nmemb, void* stream);
 public:
-    ZCHAR *GetDevMngUrl()
+    ZVOID GetDevMngUrl(string &strUri)
     {
         m_periodMutex.lock();
-        return COVER_TO_CHAR(m_strDevMngUrl.c_str());
+        strUri = m_strDevMngUrl;
         m_periodMutex.unlock();
     }
 
-    ZCHAR *GetDmsUrl()
+    ZVOID GetDmsUrl(string &strUri)
     {
         m_periodMutex.lock();
-        return COVER_TO_CHAR(m_strDmsUrl.c_str());
+        strUri = m_strDmsUrl;
         m_periodMutex.unlock();
     }
 private:
