@@ -1,10 +1,11 @@
-===================
+-----------------------
+VoWiFi
 本项目专门为Linux上音箱使用，提供时vowifi 代码示例
 -----------------------
 官网下载
-	[点击这里可以看到从官网了解一些信息](http://101.207.176.139/sdkDownload)<br />  
------------------------
-###代码初解
+	[点击这里从官网了解一些信息](http://101.207.176.139/sdkDownload)<br />  
+
+### 代码初解
 		jrAudioMng.cpp 封装的媒体接口,如打开输入麦克风设备、扬声器设备等操作
 		jrsdk.cpp 封装的是SDK接口，提供一些注册等服务
 		httpmsg.cpp 里面是往SDK管理平台上送数据，便于后台统计信息
@@ -31,7 +32,7 @@
 			该函数阻塞
 			//关闭通知
 			void Zmf_OnAudioOutputDidStop      (const char *outputId);
-###编译部署
+### 编译部署
 		cmakelist 修改工具链 的路径 
 		cmake ./
 		make && make install
