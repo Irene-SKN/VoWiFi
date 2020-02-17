@@ -33,7 +33,9 @@ const std::string  TMTC_SDK_APPID = "2";
 #define  TMTC_DMSURL_VALID_LEN  (24*3600)
 
 #define  CA_CERT_FILE "./tmp.crt"
-#define  TMTC_DEVMNG_URL "sdt.cuopen.net"
+
+const std::string  strDevURL = "sdt.cuopen.net";
+const std:: string strDmsURL = "dmssit.cuopen.net";
 
 class CHttpMsg
 {

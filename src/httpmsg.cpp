@@ -11,8 +11,8 @@ CHttpMsg::CHttpMsg()
     m_iDevValidTime = TMTC_DEVURL_VALID_LEN;
     m_iDmsValidTime = TMTC_DMSURL_VALID_LEN;
 
-    m_strDevMngUrl = "sdt.cuopen.net";
-    m_strDmsUrl = "dmssit.cuopen.net";
+    m_strDevMngUrl = strDevURL;
+    m_strDmsUrl = strDmsURL;
 }
 
 CHttpMsg::~CHttpMsg()
@@ -320,8 +320,9 @@ ZBOOL CHttpMsg::ParseDevMngResult(const std::string& result, ZUCHAR ucType)
     rapidjson::Document document;
     string strTmp;
     ZBOOL bRet = ZFALSE;
-    cout << "ParseDeMngResult result:" << result;
+    cout << "ParseDeMngResult result:" << result << endl;
     LOGI <<"ParseDeMngResult result:" << result;
+
     document.Parse<0>(result.c_str());
     if (document.HasParseError())
         return ZFALSE;
@@ -537,12 +538,39 @@ ZVOID CHttpMsg::UrlPeriodRun()
 ZBOOL CHttpMsg::UploadLogFile(ZCHAR *pcPath)
 {
     string strBody;
-    AddBody(strBody, "file", pcPath);
-    AddBody(strBody, "accountInfo", Mtc_ProfGetCurUser());
-    AddBody(strBody, "deviceInfo", Mtc_GetLclIp(0));
-    AddBody(strBody, "reason", "1");
-    AddBody(strBody, "appKey", "31598a23a087b37a28ad82d449a30206");
-    return PostRequest(TMTC_UPLOADLOG_URL, strBody, ZFALSE, ENUM_HTTP_UPLOAD_LOG);
+    ZBOOL bRet;
+
+    std::ifstream ofstream (pcPath, std::ifstream::binary);
+    if (ofstream)
+    {
+        ofstream.seekg (0, ofstream.end);
+        ZINT iLength = ofstream.tellg();
+        ofstream.seekg (0, ofstream.beg);
+
+        char * pcBuffer = new char [iLength];
+
+        LOGI << "UploadLogFile iLength :"  << iLength;
+        // read data as a block:
+        ofstream.read (pcBuffer, iLength);
+
+        if (ofstream)
+          std::cout << "read success.";
+        else
+          std::cout << "error: only " << ofstream.gcount() << " could be read";
+        ofstream.close();
+
+        AddBody(strBody, "file", pcBuffer);
+        //AddBody(strBody, "accountInfo", Mtc_ProfGetCurUser());
+        AddBody(strBody, "accountInfo", "");
+        AddBody(strBody, "deviceInfo", "linux");
+        AddBody(strBody, "reason", "");
+        AddBody(strBody, "appKey", "9714fb198263857cf2241cb108fc7da5");
+        bRet = PostRequest(TMTC_UPLOADLOG_URL, strBody, ZFALSE, ENUM_HTTP_UPLOAD_LOG);
+
+        delete[] pcBuffer;
+   }
+
+    return bRet;
 }
 
 ZVOID CHttpMsg::RingCall(ZBOOL bTaking /*= ZFALSE */)
