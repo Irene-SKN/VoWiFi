@@ -30,6 +30,9 @@ DEPENDPATH += $$PWD/third/rapidjson/inc
 INCLUDEPATH += $$PWD/third/rapidjson/inc
 DEPENDPATH += $$PWD/third/rapidjson/inc
 
+INCLUDEPATH += $$PWD/third/minizip/inc
+DEPENDPATH += $$PWD/third/minizip/inc
+
 INCLUDEPATH += $$PWD/third
 DEPENDPATH += $$PWD/third
 
@@ -51,7 +54,7 @@ HEADERS += \
     inc/jpsdk.h \
     inc/ping.h
 
-unix:!macx: LIBS += -lpthread -lz
+unix:!macx: LIBS += -lpthread  -lz
 
 unix:!macx: LIBS += -L$$PWD/third/juphoon/lib/x86_64/ -lavatar
 
@@ -87,3 +90,8 @@ unix:!macx: LIBS += -L$$PWD/third/libcurl/lib/x86_64/ -lcurl
 
 INCLUDEPATH += $$PWD/third/libcurl/lib/x86_64
 DEPENDPATH += $$PWD/third/libcurl/lib/x86_64
+
+unix:!macx: LIBS += -L$$PWD/third/minizip/lib/x86_64/ -lminizip -lz
+
+INCLUDEPATH += $$PWD/third/minizip/lib/x86_64
+DEPENDPATH += $$PWD/third/minizip/lib/x86_64

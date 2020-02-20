@@ -24,7 +24,7 @@ JP_NETSDK_API ZBOOL SDK_Init()
     CJpSdkMng *pInitSdkMng = CJpSdkMng::GetInstance();
     assert(NULL != pInitSdkMng);
     return pInitSdkMng->InitSdk();
-}
+ }
 
 JP_NETSDK_API ZVOID SDK_CleanUp()
 {

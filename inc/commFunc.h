@@ -1,5 +1,8 @@
 #pragma once
 #include "commdatadef.h"
+#include "commdatadef.h"
+#include "zip.h"
+#include "unzip.h"
 
 class CCommFunc
 {
@@ -25,6 +28,10 @@ public:
    static ZVOID GetInitSign(const string& strCuei, const string& strMac, const string& strIp, string&strSign);
 
    static ZINT64 getCurrentUnixTime();
+
+   static ZINT  CompressZipFile(string &dest, string &src);
+   static ZINT   writeInZipFile(zipFile zFile,const string& file);
+   static ZVOID  EnumDirFiles(const string& dirPrefix,const string& dirName,vector<string>& vFiles);
 };
 
 
