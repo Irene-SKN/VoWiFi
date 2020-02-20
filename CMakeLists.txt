@@ -14,8 +14,8 @@ SET(CMAKE_C_COMPILER /media/psf/Home/Downloads/git/tool3/mk-build/platforms/cust
 SET(CMAKE_CXX_COMPILER /media/psf/Home/Downloads/git/tool3/mk-build/platforms/custom/gcc-linaro-6.4.1-2017.11-x86_64_arm-linux-gnueabihf/prebuilt/linux-x86_64/bin/arm-linux-gnueabihf-g++)
 SET(CMAKE_FIND_ROOT_PATH /media/psf/Home/Downloads/git/tool3/mk-build/platforms/custom/gcc-linaro-6.4.1-2017.11-x86_64_arm-linux-gnueabihf/prebuilt/linux-x86_64/arm-linux-gnueabihf/libc)
 
-# if set default path, cmake .. -DCMAKE_INSTALL_PREFIX=./install
-set(CMAKE_INSTALL_PREFIX "bin")
+# if not set default path, cmake .. -DCMAKE_INSTALL_PREFIX=./install
+set(CMAKE_INSTALL_PREFIX "install2")
 
 add_definitions(-DRAPIDJSON_HAS_STDSTRING )
 link_directories(third/juphoon/lib/armeabi-v7a-hard third/libcurl/lib/armeabi-v7a-hard third/nghttp2/lib/armeabi-v7a-hard third/openssl/lib/armeabi-v7a-hard)
