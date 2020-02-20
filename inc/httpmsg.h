@@ -52,9 +52,11 @@ public:
     ZBOOL GetValidServerUrl();
     ZBOOL UploadSDKState();
     ZBOOL DownLoadLicense();
+
 private:
     ZVOID AddBody(string& strBody, const string& strKey, const string& strValue);
     ZBOOL PostRequest(const string& strUrl, const  string& strBody, ZBOOL bStartCall, ZUCHAR acType);
+    ZBOOL PostRequest2(const string& strUrl, const  string& strPath, ZUCHAR acType);// strPath =>Absolute path
     ZBOOL GetRequest(const string& strUrl, ZUCHAR acType);
 
 protected:

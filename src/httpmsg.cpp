@@ -76,6 +76,7 @@ ZBOOL CHttpMsg::PostRequest(const string& strUrl, const string& strBody, ZBOOL b
         curl_easy_setopt(pCurl, CURLOPT_WRITEFUNCTION, CHttpMsg::WriteData);
         curl_easy_setopt(pCurl, CURLOPT_WRITEDATA, &out);
         curl_easy_setopt(pCurl, CURLOPT_URL, strUrl.c_str());
+        curl_easy_setopt(pCurl, CURLOPT_NOSIGNAL, 1);
 #if(defined TMTC_SSL_TRANSPORT)
         curl_easy_setopt(pCurl, CURLOPT_SSLVERSION,1);
         curl_easy_setopt(pCurl, CURLOPT_SSL_VERIFYPEER, ZTRUE);
@@ -125,6 +126,94 @@ ZBOOL CHttpMsg::PostRequest(const string& strUrl, const string& strBody, ZBOOL b
     return ZTRUE;
 }
 
+ZBOOL CHttpMsg::PostRequest2(const string& strUrl, const  string& strPath, ZUCHAR acType)
+{
+    auto pCurl = curl_easy_init();
+    if (nullptr != pCurl)
+    {
+        string out, strTmp;
+
+        // use post request
+        curl_easy_setopt(pCurl, CURLOPT_POST, ZTRUE);
+        curl_easy_setopt(pCurl, CURLOPT_CONNECTTIMEOUT, TMTC_TIMEOUT_LEN);
+        curl_easy_setopt(pCurl, CURLOPT_TIMEOUT, TMTC_TIMEOUT_LEN);
+        curl_easy_setopt(pCurl, CURLOPT_WRITEFUNCTION, CHttpMsg::WriteData);
+        curl_easy_setopt(pCurl, CURLOPT_WRITEDATA, &out);
+        curl_easy_setopt(pCurl, CURLOPT_URL, strUrl.c_str());
+        curl_easy_setopt(pCurl, CURLOPT_NOSIGNAL, 1);
+        curl_easy_setopt(pCurl, CURLOPT_USERAGENT, "PostmanRuntime/7.22.0");
+
+#if(defined TMTC_SSL_TRANSPORT)
+        curl_easy_setopt(pCurl, CURLOPT_SSLVERSION,1);
+        curl_easy_setopt(pCurl, CURLOPT_SSL_VERIFYPEER, ZTRUE);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, ZFALSE);
+        curl_easy_setopt(pCurl, CURLOPT_CAINFO, CA_CERT_FILE);
+#else
+        curl_easy_setopt(pCurl, CURLOPT_SSL_VERIFYPEER, ZFALSE);
+        curl_easy_setopt(pCurl, CURLOPT_SSL_VERIFYHOST, ZFALSE);
+#endif
+        curl_slist *pHeaderList = curl_slist_append(nullptr, "Content-Type: multipart/form-data; boundary=--------------------------851916056824645127042149");
+        curl_slist_append(nullptr, "Accept: */*");
+        curl_slist_append(pHeaderList, "cache-control: no-cache");
+
+#if(defined TMTC_DOMAIN_TEST)
+        strTmp = string("HOST:") + string(GetDevMngUrl());
+#else
+        strTmp = string("HOST:") + TMTC_REMOTE_ADDR;
+#endif
+        curl_slist_append(pHeaderList, strTmp.c_str());
+        curl_slist_append(pHeaderList, "Content-Type: multipart/form-data; boundary=--------------------------851916056824645127042149");
+        curl_slist_append(pHeaderList, "Accept-Encoding: gzip, deflate, br");
+        curl_slist_append(pHeaderList, "Connection: Keep-Alive");
+
+        curl_httppost* pFormPost = nullptr;
+        curl_httppost* pLastElem = nullptr;
+        curl_formadd(&pFormPost,  &pLastElem,
+                     CURLFORM_COPYNAME, "accountInfo",
+                     CURLFORM_COPYCONTENTS, "",
+                     CURLFORM_END);
+
+        curl_formadd(&pFormPost, &pLastElem,
+                     CURLFORM_COPYNAME, "deviceInfo",
+                     CURLFORM_COPYCONTENTS, "linux",
+                     CURLFORM_END);
+
+        curl_formadd(&pFormPost, &pLastElem,
+                     CURLFORM_COPYNAME, "reason",
+                     CURLFORM_COPYCONTENTS, "1",
+                     CURLFORM_END);
+
+        curl_formadd(&pFormPost, &pLastElem,
+                     CURLFORM_COPYNAME, "appKey",
+                     CURLFORM_COPYCONTENTS, "9714fb198263857cf2241cb108fc7da5",
+                     CURLFORM_END);
+        curl_formadd(&pFormPost, &pLastElem,
+                    CURLFORM_CONTENTTYPE, "multipart/form-data",
+                    CURLFORM_END);
+
+        curl_formadd(&pFormPost, &pLastElem, CURLFORM_COPYNAME, "file", CURLFORM_FILE, strPath.c_str(), CURLFORM_CONTENTTYPE, "text/plain", CURLFORM_END);
+        curl_formadd(&pFormPost, &pLastElem, CURLFORM_COPYNAME, "end", CURLFORM_COPYCONTENTS, "end", CURLFORM_END);
+        curl_easy_setopt(pCurl, CURLOPT_HTTPPOST, pFormPost);
+        curl_easy_setopt(pCurl, CURLOPT_URL, strUrl.c_str());
+
+        auto res = curl_easy_perform(pCurl);
+
+        if (res != CURLE_OK)
+        {
+            curl_easy_cleanup(pCurl);
+            return ZFALSE;
+        }
+        else
+        {
+            curl_easy_cleanup(pCurl);
+            return  ParseDevMngResult(out, acType);
+        }
+    }
+
+    return ZTRUE;
+}
+
+
 ZBOOL CHttpMsg::GetRequest(const string& strUrl, ZUCHAR acType)
 {
     CURL *pCurl = curl_easy_init();
@@ -146,7 +235,7 @@ ZBOOL CHttpMsg::GetRequest(const string& strUrl, ZUCHAR acType)
         curl_easy_setopt(pCurl, CURLOPT_READFUNCTION, NULL);
         curl_easy_setopt(pCurl, CURLOPT_WRITEFUNCTION, CHttpMsg::WriteData);
         curl_easy_setopt(pCurl, CURLOPT_WRITEDATA, &out);
-
+        curl_easy_setopt(pCurl, CURLOPT_NOSIGNAL, 1);
         auto res = curl_easy_perform(pCurl);
 
         if (res != CURLE_OK)
@@ -537,40 +626,7 @@ ZVOID CHttpMsg::UrlPeriodRun()
 
 ZBOOL CHttpMsg::UploadLogFile(ZCHAR *pcPath)
 {
-    string strBody;
-    ZBOOL bRet;
-
-    std::ifstream ofstream (pcPath, std::ifstream::binary);
-    if (ofstream)
-    {
-        ofstream.seekg (0, ofstream.end);
-        ZINT iLength = ofstream.tellg();
-        ofstream.seekg (0, ofstream.beg);
-
-        char * pcBuffer = new char [iLength];
-
-        LOGI << "UploadLogFile iLength :"  << iLength;
-        // read data as a block:
-        ofstream.read (pcBuffer, iLength);
-
-        if (ofstream)
-          std::cout << "read success.";
-        else
-          std::cout << "error: only " << ofstream.gcount() << " could be read";
-        ofstream.close();
-
-        AddBody(strBody, "file", pcBuffer);
-        //AddBody(strBody, "accountInfo", Mtc_ProfGetCurUser());
-        AddBody(strBody, "accountInfo", "");
-        AddBody(strBody, "deviceInfo", "linux");
-        AddBody(strBody, "reason", "");
-        AddBody(strBody, "appKey", "9714fb198263857cf2241cb108fc7da5");
-        bRet = PostRequest(TMTC_UPLOADLOG_URL, strBody, ZFALSE, ENUM_HTTP_UPLOAD_LOG);
-
-        delete[] pcBuffer;
-   }
-
-    return bRet;
+   return PostRequest2(TMTC_UPLOADLOG_URL, pcPath, ENUM_HTTP_UPLOAD_LOG);
 }
 
 ZVOID CHttpMsg::RingCall(ZBOOL bTaking /*= ZFALSE */)
@@ -589,3 +645,4 @@ ZBOOL CHttpMsg::DownLoadLicense()
     string strUrl = TMTC_LICENSE_URL + "31598a23a087b37a28ad82d449a30206" + "&device="  + "unicom-32arm-baidu";
     return GetRequest(strUrl, ENUM_HTTP_DOWNLICENSE);
 }
+
