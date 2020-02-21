@@ -311,7 +311,7 @@ ZVOID CCommFunc::PrintInLog(const char* format, ...)
     LOGI << acLogInfo ;
     va_end(ap);
 }
-
+#ifdef TMTC_ZIP_COMPRESS
 ZVOID CCommFunc::EnumDirFiles(const string& dirPrefix,const string& dirName,vector<string>& vFiles)
 {
     if (dirPrefix.empty() || dirName.empty())
@@ -451,3 +451,4 @@ ZINT CCommFunc::CompressZipFile(string &dest, string &src)
 
     return ZOK;
 }
+#endif

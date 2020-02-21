@@ -1,8 +1,11 @@
 #pragma once
 #include "commdatadef.h"
 #include "commdatadef.h"
+
+#ifdef TMTC_ZIP_COMPRESS
 #include "zip.h"
 #include "unzip.h"
+#endif
 
 class CCommFunc
 {
@@ -29,9 +32,11 @@ public:
 
    static ZINT64 getCurrentUnixTime();
 
+#ifdef TMTC_ZIP_COMPRESS
    static ZINT  CompressZipFile(string &dest, string &src);
    static ZINT   writeInZipFile(zipFile zFile,const string& file);
    static ZVOID  EnumDirFiles(const string& dirPrefix,const string& dirName,vector<string>& vFiles);
+#endif
 };
 
 
