@@ -502,13 +502,13 @@ ZBOOL CHttpMsg::ParseDevMngResult(const std::string& result, ZUCHAR ucType)
 
         case ENUM_HTTP_UPLOAD_LOG:
         {
-            if (document.HasMember("ret") && document.HasMember("msg") && document.HasMember("data"))
+            if (document.HasMember("ret") && document.HasMember("msg"))
             {
                 strTmp.clear();
                 strTmp = document["msg"].GetString();
                 if ( 0 == document["ret"].GetInt() && 0 == strTmp.compare("ok"))
                 {
-                    // nothing todo
+                    bRet = ZTRUE;
                 }
 
             }
